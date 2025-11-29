@@ -21,13 +21,41 @@
 
         #bottom {
             flex:30%;
-            background:#1d7d1d; /* Green background */
+            background:#1d7d1d;
             color:white;
             font-size:4vw;
             font-weight:bold;
             display:flex;
             align-items:center;
-            justify-content:center;
+            overflow:hidden;
+            position:relative;
+        }
+
+        /* Ticker animation */
+        .ticker {
+            display:flex;
+            white-space:nowrap;
+            animation:scroll-left 20s linear infinite;
+        }
+
+        .ticker-item {
+            padding:0 50px;
+        }
+
+        .ticker-item::after {
+            content:" ★ ";
+            padding:0 20px;
+            opacity:0.7;
+        }
+
+        @keyframes scroll-left {
+            0%   { transform:translateX(0); }
+            100% { transform:translateX(-50%); }
+        }
+
+        /* Pause on hover */
+        .ticker:hover {
+            animation-play-state:paused;
         }
     </style>
 </head>
@@ -37,10 +65,87 @@
 <!-- Vaktija Tuzla prayer times -->
 <iframe id="top" src="https://vaktija.ba/tuzla" allowfullscreen></iframe>
 
-<!-- Bottom banner -->
+<!-- Bottom ticker banner -->
 <div id="bottom">
-    Placeholder text here – change anytime
+    <div class="ticker" id="ticker">
+        <!-- Messages loaded from Google Sheets -->
+    </div>
 </div>
+
+<script>
+    // ============================================
+    // CONFIGURATION
+    // ============================================
+
+    // Google Sheets CSV URL - Replace with your published sheet URL
+    // To get this: File → Share → Publish to web → CSV
+    const GOOGLE_SHEET_CSV = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vRpcuOleNQR-WnFPu49-Ha2YQj8ZrVYVYEPrWU-pBwz7nsFmkXDgLK_fGiE7Emn0Wec7yz552GO_Wzw/pub?output=csv';
+
+    // Refresh intervals
+    const PAGE_REFRESH_MS = 10000;      // 10 seconds - refreshes prayer times
+    const SHEET_REFRESH_MS = 60000;     // 60 seconds - checks for new messages
+
+    // Fallback messages if Google Sheets unavailable
+    const FALLBACK_MESSAGES = [
+        'Dobrodošli u našu džamiju'
+    ];
+
+    // ============================================
+    // AUTO-REFRESH (every 10 seconds)
+    // ============================================
+    setInterval(() => {
+        const iframe = document.getElementById('top');
+        iframe.src = iframe.src;
+    }, PAGE_REFRESH_MS);
+
+    // ============================================
+    // GOOGLE SHEETS SYNC & TICKER
+    // ============================================
+    async function fetchMessages() {
+        try {
+            const response = await fetch(GOOGLE_SHEET_CSV + '&_=' + Date.now());
+            const csv = await response.text();
+
+            // Parse CSV - each row is a message
+            const messages = csv
+                .split('\n')
+                .map(row => row.trim())
+                .filter(row => row.length > 0);
+
+            return messages.length > 0 ? messages : FALLBACK_MESSAGES;
+        } catch (error) {
+            console.error('Failed to fetch messages:', error);
+            return FALLBACK_MESSAGES;
+        }
+    }
+
+    function updateTicker(messages) {
+        const ticker = document.getElementById('ticker');
+
+        // Duplicate messages for seamless loop
+        const html = messages.map(msg =>
+            `<span class="ticker-item">${msg}</span>`
+        ).join('');
+
+        ticker.innerHTML = html + html; // Duplicate for seamless scrolling
+
+        // Adjust animation speed based on content length
+        const totalLength = messages.join('').length;
+        const duration = Math.max(15, totalLength * 0.3);
+        ticker.style.animationDuration = duration + 's';
+    }
+
+    async function refreshMessages() {
+        const messages = await fetchMessages();
+        updateTicker(messages);
+    }
+
+    // Initial load
+    refreshMessages();
+
+    // Refresh messages periodically
+    setInterval(refreshMessages, SHEET_REFRESH_MS);
+</script>
 
 </body>
 </html>
