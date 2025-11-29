@@ -82,7 +82,6 @@
     const GOOGLE_SHEET_CSV = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vRpcuOleNQR-WnFPu49-Ha2YQj8ZrVYVYEPrWU-pBwz7nsFmkXDgLK_fGiE7Emn0Wec7yz552GO_Wzw/pub?output=csv';
 
     // Refresh intervals
-    const PAGE_REFRESH_MS = 10000;      // 10 seconds - refreshes prayer times
     const SHEET_REFRESH_MS = 60000;     // 60 seconds - checks for new messages
 
     // Fallback messages if Google Sheets unavailable
@@ -91,12 +90,55 @@
     ];
 
     // ============================================
-    // AUTO-REFRESH (every 10 seconds)
+    // FULL PAGE RELOAD AT MIDNIGHT
     // ============================================
-    setInterval(() => {
-        const iframe = document.getElementById('top');
-        iframe.src = iframe.src;
-    }, PAGE_REFRESH_MS);
+    function scheduleMidnightReload() {
+        const now = new Date();
+        const midnight = new Date(now);
+        midnight.setDate(midnight.getDate() + 1);
+        midnight.setHours(0, 1, 0, 0); // 00:01:00 - one minute after midnight
+
+        const msUntilMidnight = midnight - now;
+
+        setTimeout(() => {
+            location.reload();
+        }, msUntilMidnight);
+
+        console.log('Page reload scheduled for:', midnight.toLocaleString());
+    }
+
+    // Start the midnight reload schedule
+    scheduleMidnightReload();
+
+    // ============================================
+    // AUTO-RELOAD ON CODE CHANGES
+    // ============================================
+    const CODE_CHECK_MS = 60000; // Check every 60 seconds
+    let lastETag = null;
+
+    async function checkForUpdates() {
+        try {
+            const response = await fetch(location.href, {
+                method: 'HEAD',
+                cache: 'no-store'
+            });
+
+            const etag = response.headers.get('etag') || response.headers.get('last-modified');
+
+            if (lastETag === null) {
+                lastETag = etag; // First run, just store it
+            } else if (etag && etag !== lastETag) {
+                console.log('Code update detected, reloading...');
+                location.reload();
+            }
+        } catch (error) {
+            console.error('Update check failed:', error);
+        }
+    }
+
+    // Check for code updates periodically
+    setInterval(checkForUpdates, CODE_CHECK_MS);
+    checkForUpdates(); // Initial check
 
     // ============================================
     // GOOGLE SHEETS SYNC & TICKER
