@@ -1,0 +1,46 @@
+<html>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+
+    <style>
+        * { margin:0; padding:0; box-sizing:border-box; }
+
+        body {
+            display:flex;
+            flex-direction:column;
+            height:100vh;
+            font-family:Arial, sans-serif;
+        }
+
+        #top {
+            flex:70%;
+            width:100%;
+            border:none;
+        }
+
+        #bottom {
+            flex:30%;
+            background:#1d7d1d; /* Green background */
+            color:white;
+            font-size:4vw;
+            font-weight:bold;
+            display:flex;
+            align-items:center;
+            justify-content:center;
+        }
+    </style>
+</head>
+
+<body>
+
+<!-- Vaktija Tuzla prayer times -->
+<iframe id="top" src="https://vaktija.ba/tuzla" allowfullscreen></iframe>
+
+<!-- Bottom banner -->
+<div id="bottom">
+    Placeholder text here – change anytime
+</div>
+
+</body>
+</html>
