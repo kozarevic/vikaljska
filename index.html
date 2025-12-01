@@ -6,69 +6,312 @@
     <style>
         * { margin:0; padding:0; box-sizing:border-box; }
 
+        html, body {
+            height:100%;
+            overflow:hidden;
+        }
+
         body {
             display:flex;
-            flex-direction:column;
-            height:100vh;
             font-family:Arial, sans-serif;
-        }
-
-        #top {
-            flex:70%;
-            width:100%;
-            border:none;
-        }
-
-        #bottom {
-            flex:30%;
-            background:#1d7d1d;
+            background:#0a1628;
             color:white;
+        }
+
+        /* Left sidebar - Prayer times */
+        #sidebar {
+            width:350px;
+            min-width:350px;
+            background:#0d2137;
+            display:flex;
+            flex-direction:column;
+            padding:30px;
+            justify-content:center;
+        }
+
+        .location {
+            font-size:2.2em;
+            font-weight:bold;
+            color:#f39c12;
+            text-align:center;
+            margin-bottom:15px;
+        }
+
+        .date {
+            text-align:center;
+            margin-bottom:30px;
+            font-size:1em;
+            opacity:0.9;
+        }
+
+        .date-islamic {
+            color:#4ecdc4;
+            font-weight:bold;
+            margin-bottom:8px;
+        }
+
+        .prayer-times {
+            display:flex;
+            flex-direction:column;
+            gap:20px;
+        }
+
+        .prayer {
+            display:flex;
+            justify-content:space-between;
+            align-items:center;
+            padding:20px 25px;
+            background:rgba(255,255,255,0.05);
+            border-radius:10px;
+            transition:all 0.3s ease;
+        }
+
+        .prayer.active {
+            background:rgba(78,205,196,0.3);
+            box-shadow:0 0 15px rgba(78,205,196,0.4);
+        }
+
+        .prayer-name {
+            font-size:1.3em;
+            opacity:0.9;
+        }
+
+        .prayer-time {
+            font-size:1.6em;
+            font-weight:bold;
+        }
+
+        /* Main content area */
+        #main {
+            flex:1;
+            display:flex;
+            flex-direction:column;
+            overflow:hidden;
+            min-width:0;
+        }
+
+        /* Message display area */
+        #message-area {
+            flex:1;
+            display:flex;
+            justify-content:center;
+            align-items:center;
+            padding:40px;
+            text-align:center;
+            overflow:hidden;
+        }
+
+        #message {
             font-size:4vw;
             font-weight:bold;
-            display:flex;
+            line-height:1.4;
+            opacity:1;
+            transition:opacity 0.5s ease;
+            max-width:100%;
+            word-wrap:break-word;
+        }
+
+        #message.fade-out {
+            opacity:0;
+        }
+
+        /* Test Panel - REMOVE LATER */
+        #test-panel {
+            position:fixed;
+            top:10px;
+            right:10px;
+            background:rgba(0,0,0,0.9);
+            padding:15px;
+            border-radius:10px;
+            z-index:2000;
+            font-size:12px;
+        }
+
+        #test-panel h3 {
+            margin-bottom:10px;
+            color:#f39c12;
+        }
+
+        #test-panel button {
+            display:block;
+            width:100%;
+            margin:5px 0;
+            padding:8px 12px;
+            border:none;
+            border-radius:5px;
+            cursor:pointer;
+            font-size:12px;
+        }
+
+        #test-panel button.prayer-btn {
+            background:#2ecc71;
+            color:white;
+        }
+
+        #test-panel button.mode-btn {
+            background:#e74c3c;
+            color:white;
+        }
+
+        #test-panel button.exit-btn {
+            background:#3498db;
+            color:white;
+        }
+
+        #test-panel button:hover {
+            opacity:0.8;
+        }
+
+        #test-panel .section {
+            margin-top:10px;
+            padding-top:10px;
+            border-top:1px solid #444;
+        }
+
+        /* Prayer Mode - Fullscreen */
+        #prayer-mode {
+            display:none;
+            position:fixed;
+            top:0;
+            left:0;
+            width:100%;
+            height:100%;
+            background:#0a1628;
+            z-index:1000;
+            flex-direction:column;
+            justify-content:center;
             align-items:center;
-            overflow:hidden;
-            position:relative;
+            text-align:center;
         }
 
-        /* Ticker animation */
-        .ticker {
+        #prayer-mode.active {
             display:flex;
-            white-space:nowrap;
-            animation:scroll-left 20s linear infinite;
         }
 
-        .ticker-item {
-            padding:0 50px;
+        #prayer-mode .prayer-mode-title {
+            font-size:4vw;
+            color:#f39c12;
+            margin-bottom:10px;
         }
 
-        .ticker-item::after {
-            content:" ★ ";
-            padding:0 20px;
+        #prayer-mode .prayer-mode-date {
+            text-align:center;
+            margin-bottom:40px;
+            font-size:1.8vw;
+        }
+
+        #prayer-mode .prayer-mode-date .islamic {
+            color:#4ecdc4;
+            font-weight:bold;
+            margin-bottom:5px;
+        }
+
+        #prayer-mode .prayer-mode-date .gregorian {
+            opacity:0.9;
+        }
+
+        #prayer-mode .prayer-mode-times {
+            display:flex;
+            gap:30px;
+            flex-wrap:wrap;
+            justify-content:center;
+        }
+
+        #prayer-mode .prayer-mode-item {
+            text-align:center;
+            padding:30px 40px;
+            background:rgba(255,255,255,0.05);
+            border-radius:15px;
+            transition:all 0.3s ease;
+        }
+
+        #prayer-mode .prayer-mode-item.active {
+            background:rgba(78,205,196,0.3);
+            box-shadow:0 0 30px rgba(78,205,196,0.5);
+            transform:scale(1.1);
+        }
+
+        #prayer-mode .prayer-mode-item .name {
+            font-size:2.5vw;
+            opacity:0.8;
+            margin-bottom:10px;
+        }
+
+        #prayer-mode .prayer-mode-item .time {
+            font-size:4vw;
+            font-weight:bold;
+        }
+
+        #prayer-mode .prayer-mode-item.active .name {
+            color:#4ecdc4;
+            opacity:1;
+        }
+
+        #prayer-mode .prayer-status {
+            font-size:2.5vw;
+            margin-top:50px;
             opacity:0.7;
         }
 
-        @keyframes scroll-left {
-            0%   { transform:translateX(0); }
-            100% { transform:translateX(-50%); }
-        }
-
-        /* Pause on hover */
-        .ticker:hover {
-            animation-play-state:paused;
+        /* Hide normal content during prayer mode */
+        body.prayer-active #sidebar,
+        body.prayer-active #main {
+            display:none;
         }
     </style>
 </head>
 
 <body>
 
-<!-- Vaktija Tuzla prayer times -->
-<iframe id="top" src="https://vaktija.ba/tuzla" allowfullscreen></iframe>
+<!-- TEST PANEL - REMOVE LATER -->
+<div id="test-panel">
+    <h3>Test Panel</h3>
 
-<!-- Bottom ticker banner -->
-<div id="bottom">
-    <div class="ticker" id="ticker">
-        <!-- Messages loaded from Google Sheets -->
+    <div>Set Active Prayer:</div>
+    <button class="prayer-btn" onclick="testSetActivePrayer(0)">Zora</button>
+    <button class="prayer-btn" onclick="testSetActivePrayer(1)">Izlazak</button>
+    <button class="prayer-btn" onclick="testSetActivePrayer(2)">Podne</button>
+    <button class="prayer-btn" onclick="testSetActivePrayer(3)">Ikindija</button>
+    <button class="prayer-btn" onclick="testSetActivePrayer(4)">Akšam</button>
+    <button class="prayer-btn" onclick="testSetActivePrayer(5)">Jacija</button>
+
+    <div class="section">Prayer Mode:</div>
+    <button class="mode-btn" onclick="testEnterPrayerMode(0)">30s before Zora</button>
+    <button class="mode-btn" onclick="testEnterPrayerMode(2)">30s before Podne</button>
+    <button class="mode-btn" onclick="testEnterPrayerMode(4)">30s before Akšam</button>
+
+    <div class="section">Exit:</div>
+    <button class="exit-btn" onclick="exitPrayerMode()">Exit Prayer Mode</button>
+
+    <div class="section">Messages:</div>
+    <button class="exit-btn" onclick="rotateMessage()">Next Message</button>
+</div>
+
+<!-- Prayer Mode Fullscreen -->
+<div id="prayer-mode">
+    <div class="prayer-mode-title" id="prayer-mode-title">Tuzla</div>
+    <div class="prayer-mode-date">
+        <div class="islamic" id="prayer-mode-islamic"></div>
+        <div class="gregorian" id="prayer-mode-gregorian"></div>
+    </div>
+    <div class="prayer-mode-times" id="prayer-mode-times"></div>
+    <div class="prayer-status" id="prayer-mode-status"></div>
+</div>
+
+<!-- Left sidebar with prayer times -->
+<div id="sidebar">
+    <div class="location" id="location">Tuzla</div>
+    <div class="date">
+        <div class="date-islamic" id="date-islamic"></div>
+        <div id="date-gregorian"></div>
+    </div>
+    <div class="prayer-times" id="prayer-times"></div>
+</div>
+
+<!-- Main content -->
+<div id="main">
+    <div id="message-area">
+        <div id="message"></div>
     </div>
 </div>
 
@@ -77,17 +320,241 @@
     // CONFIGURATION
     // ============================================
 
-    // Google Sheets CSV URL - Replace with your published sheet URL
-    // To get this: File → Share → Publish to web → CSV
+    // Vaktija API for Tuzla (ID: 93)
+    const VAKTIJA_API = 'https://api.vaktija.ba/vaktija/v1/93';
+    const CORS_PROXY = 'https://corsproxy.io/?';
+
+    // Google Sheets CSV URL
     const GOOGLE_SHEET_CSV = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vRpcuOleNQR-WnFPu49-Ha2YQj8ZrVYVYEPrWU-pBwz7nsFmkXDgLK_fGiE7Emn0Wec7yz552GO_Wzw/pub?output=csv';
 
-    // Refresh intervals
-    const SHEET_REFRESH_MS = 60000;     // 60 seconds - checks for new messages
+    // Intervals
+    const SHEET_REFRESH_MS = 60000;         // 60 sec - fetch new messages from sheet
+    const MESSAGE_ROTATE_MS = 300000;       // 5 min - rotate main message
+    const PRAYER_CHECK_MS = 60000;          // 60 sec - check for prayer time change
+    const PRAYER_MODE_CHECK_MS = 5000;      // 5 sec - check for prayer mode trigger
 
-    // Fallback messages if Google Sheets unavailable
-    const FALLBACK_MESSAGES = [
-        'Dobrodošli u našu džamiju'
-    ];
+    // Prayer mode settings
+    const PRAYER_MODE_BEFORE_SEC = 30;      // 30 sec before prayer time
+    const PRAYER_MODE_DURATION_MS = 1800000; // 30 min prayer mode duration
+
+    // Prayer names in Bosnian
+    const PRAYER_NAMES = ['Zora', 'Izlazak', 'Podne', 'Ikindija', 'Akšam', 'Jacija'];
+
+    // Fallback vaktija data (approximate times for Tuzla)
+    const FALLBACK_VAKTIJA = {
+        lokacija: 'Tuzla',
+        datum: ['', new Date().toLocaleDateString('bs-BA', {weekday:'long', day:'numeric', month:'long', year:'numeric'})],
+        vakat: ['5:30', '7:00', '11:45', '14:30', '16:45', '18:15']
+    };
+
+    // Fallback messages
+    const FALLBACK_MESSAGES = ['Dobrodošli u našu džamiju'];
+
+    // State
+    let vaktijaData = null;
+    let messages = [];
+    let currentMessageIndex = 0;
+    let prayerModeActive = false;
+    let prayerModeTimeout = null;
+
+    // ============================================
+    // VAKTIJA API
+    // ============================================
+    function getCurrentPrayerIndex(vakat) {
+        const now = new Date();
+        const currentMinutes = now.getHours() * 60 + now.getMinutes();
+
+        for (let i = vakat.length - 1; i >= 0; i--) {
+            const [h, m] = vakat[i].split(':').map(Number);
+            if (currentMinutes >= h * 60 + m) {
+                return i;
+            }
+        }
+        return -1;
+    }
+
+    function renderPrayerTimes() {
+        if (!vaktijaData) return;
+
+        const container = document.getElementById('prayer-times');
+        const activeIndex = getCurrentPrayerIndex(vaktijaData.vakat);
+
+        container.innerHTML = vaktijaData.vakat.map((time, i) => `
+            <div class="prayer ${i === activeIndex ? 'active' : ''}">
+                <div class="prayer-name">${PRAYER_NAMES[i]}</div>
+                <div class="prayer-time">${time}</div>
+            </div>
+        `).join('');
+    }
+
+    async function fetchVaktija() {
+        let data = null;
+
+        // Try 1: Direct API
+        try {
+            const response = await fetch(VAKTIJA_API);
+            if (response.ok) {
+                data = await response.json();
+                console.log('Vaktija loaded from direct API');
+            }
+        } catch (e) {
+            console.warn('Direct API failed, trying CORS proxy...', e.message);
+        }
+
+        // Try 2: CORS Proxy
+        if (!data) {
+            try {
+                const response = await fetch(CORS_PROXY + encodeURIComponent(VAKTIJA_API));
+                if (response.ok) {
+                    data = await response.json();
+                    console.log('Vaktija loaded via CORS proxy');
+                }
+            } catch (e) {
+                console.warn('CORS proxy failed, using fallback...', e.message);
+            }
+        }
+
+        // Try 3: Use fallback
+        if (!data) {
+            data = FALLBACK_VAKTIJA;
+            console.log('Using fallback vaktija times');
+        }
+
+        // Store and render
+        vaktijaData = data;
+
+        document.getElementById('location').textContent = vaktijaData.lokacija;
+        document.getElementById('date-islamic').textContent = vaktijaData.datum[0];
+        document.getElementById('date-gregorian').textContent = vaktijaData.datum[1];
+
+        renderPrayerTimes();
+    }
+
+    // Check and update active prayer every minute
+    setInterval(renderPrayerTimes, PRAYER_CHECK_MS);
+
+    // Initial load
+    fetchVaktija();
+
+    // ============================================
+    // PRAYER MODE (fullscreen 30 sec before prayer)
+    // ============================================
+    function enterPrayerMode(prayerIndex) {
+        if (prayerModeActive) return;
+
+        prayerModeActive = true;
+        document.body.classList.add('prayer-active');
+        document.getElementById('prayer-mode').classList.add('active');
+
+        // Set title and dates
+        document.getElementById('prayer-mode-title').textContent = vaktijaData.lokacija;
+        document.getElementById('prayer-mode-islamic').textContent = vaktijaData.datum[0];
+        document.getElementById('prayer-mode-gregorian').textContent = vaktijaData.datum[1];
+
+        // Render all prayer times with current one highlighted
+        const container = document.getElementById('prayer-mode-times');
+        container.innerHTML = vaktijaData.vakat.map((time, i) => `
+            <div class="prayer-mode-item ${i === prayerIndex ? 'active' : ''}">
+                <div class="name">${PRAYER_NAMES[i]}</div>
+                <div class="time">${time}</div>
+            </div>
+        `).join('');
+
+        document.getElementById('prayer-mode-status').textContent = 'Vrijeme namaza - ' + PRAYER_NAMES[prayerIndex];
+
+        console.log('Prayer mode activated for:', PRAYER_NAMES[prayerIndex]);
+
+        // Exit prayer mode after 30 minutes
+        prayerModeTimeout = setTimeout(exitPrayerMode, PRAYER_MODE_DURATION_MS);
+    }
+
+    function exitPrayerMode() {
+        prayerModeActive = false;
+        document.body.classList.remove('prayer-active');
+        document.getElementById('prayer-mode').classList.remove('active');
+
+        if (prayerModeTimeout) {
+            clearTimeout(prayerModeTimeout);
+            prayerModeTimeout = null;
+        }
+
+        console.log('Prayer mode deactivated');
+    }
+
+    function checkPrayerMode() {
+        if (!vaktijaData || prayerModeActive) return;
+
+        const now = new Date();
+        const currentSeconds = now.getHours() * 3600 + now.getMinutes() * 60 + now.getSeconds();
+
+        for (let i = 0; i < vaktijaData.vakat.length; i++) {
+            const [h, m] = vaktijaData.vakat[i].split(':').map(Number);
+            const prayerSeconds = h * 3600 + m * 60;
+
+            // Check if we're within 30 seconds before prayer time
+            const diff = prayerSeconds - currentSeconds;
+            if (diff >= 0 && diff <= PRAYER_MODE_BEFORE_SEC) {
+                enterPrayerMode(i);
+                break;
+            }
+        }
+    }
+
+    // Check for prayer mode every 5 seconds
+    setInterval(checkPrayerMode, PRAYER_MODE_CHECK_MS);
+
+    // ============================================
+    // MAIN MESSAGE DISPLAY (rotates every 5 min)
+    // ============================================
+    function showMessage(text) {
+        const el = document.getElementById('message');
+        el.classList.add('fade-out');
+
+        setTimeout(() => {
+            el.textContent = text;
+            el.classList.remove('fade-out');
+        }, 500);
+    }
+
+    function rotateMessage() {
+        if (messages.length === 0) return;
+
+        showMessage(messages[currentMessageIndex]);
+        currentMessageIndex = (currentMessageIndex + 1) % messages.length;
+    }
+
+    // Rotate message every 5 minutes
+    setInterval(rotateMessage, MESSAGE_ROTATE_MS);
+
+    // ============================================
+    // GOOGLE SHEETS SYNC
+    // ============================================
+    async function fetchMessages() {
+        try {
+            const response = await fetch(GOOGLE_SHEET_CSV + '&_=' + Date.now());
+            const csv = await response.text();
+
+            const rows = csv
+                .split('\n')
+                .map(row => row.trim())
+                .filter(row => row.length > 0);
+
+            messages = rows.length > 0 ? rows : FALLBACK_MESSAGES;
+
+            // Show first message if none shown yet
+            if (document.getElementById('message').textContent === '') {
+                currentMessageIndex = 0;
+                rotateMessage();
+            }
+        } catch (error) {
+            console.error('Failed to fetch messages:', error);
+            messages = FALLBACK_MESSAGES;
+        }
+    }
+
+    // Fetch messages periodically
+    setInterval(fetchMessages, SHEET_REFRESH_MS);
+    fetchMessages();
 
     // ============================================
     // FULL PAGE RELOAD AT MIDNIGHT
@@ -96,24 +563,18 @@
         const now = new Date();
         const midnight = new Date(now);
         midnight.setDate(midnight.getDate() + 1);
-        midnight.setHours(0, 1, 0, 0); // 00:01:00 - one minute after midnight
+        midnight.setHours(0, 1, 0, 0);
 
-        const msUntilMidnight = midnight - now;
-
-        setTimeout(() => {
-            location.reload();
-        }, msUntilMidnight);
-
+        setTimeout(() => location.reload(), midnight - now);
         console.log('Page reload scheduled for:', midnight.toLocaleString());
     }
 
-    // Start the midnight reload schedule
     scheduleMidnightReload();
 
     // ============================================
     // AUTO-RELOAD ON CODE CHANGES
     // ============================================
-    const CODE_CHECK_MS = 60000; // Check every 60 seconds
+    const CODE_CHECK_MS = 60000;
     let lastETag = null;
 
     async function checkForUpdates() {
@@ -126,7 +587,7 @@
             const etag = response.headers.get('etag') || response.headers.get('last-modified');
 
             if (lastETag === null) {
-                lastETag = etag; // First run, just store it
+                lastETag = etag;
             } else if (etag && etag !== lastETag) {
                 console.log('Code update detected, reloading...');
                 location.reload();
@@ -136,57 +597,38 @@
         }
     }
 
-    // Check for code updates periodically
     setInterval(checkForUpdates, CODE_CHECK_MS);
-    checkForUpdates(); // Initial check
+    checkForUpdates();
 
     // ============================================
-    // GOOGLE SHEETS SYNC & TICKER
+    // TEST FUNCTIONS - REMOVE LATER
     // ============================================
-    async function fetchMessages() {
-        try {
-            const response = await fetch(GOOGLE_SHEET_CSV + '&_=' + Date.now());
-            const csv = await response.text();
+    function testSetActivePrayer(index) {
+        if (!vaktijaData) return;
 
-            // Parse CSV - each row is a message
-            const messages = csv
-                .split('\n')
-                .map(row => row.trim())
-                .filter(row => row.length > 0);
+        const container = document.getElementById('prayer-times');
+        container.innerHTML = vaktijaData.vakat.map((time, i) => `
+            <div class="prayer ${i === index ? 'active' : ''}">
+                <div class="prayer-name">${PRAYER_NAMES[i]}</div>
+                <div class="prayer-time">${time}</div>
+            </div>
+        `).join('');
 
-            return messages.length > 0 ? messages : FALLBACK_MESSAGES;
-        } catch (error) {
-            console.error('Failed to fetch messages:', error);
-            return FALLBACK_MESSAGES;
+        console.log('Test: Set active prayer to', PRAYER_NAMES[index]);
+    }
+
+    function testEnterPrayerMode(index) {
+        if (!vaktijaData) {
+            console.log('Vaktija data not loaded yet');
+            return;
         }
+
+        // Force enter prayer mode for testing
+        prayerModeActive = false; // Reset so we can enter again
+        enterPrayerMode(index);
+
+        console.log('Test: Entered prayer mode for', PRAYER_NAMES[index]);
     }
-
-    function updateTicker(messages) {
-        const ticker = document.getElementById('ticker');
-
-        // Duplicate messages for seamless loop
-        const html = messages.map(msg =>
-            `<span class="ticker-item">${msg}</span>`
-        ).join('');
-
-        ticker.innerHTML = html + html; // Duplicate for seamless scrolling
-
-        // Adjust animation speed based on content length
-        const totalLength = messages.join('').length;
-        const duration = Math.max(15, totalLength * 0.3);
-        ticker.style.animationDuration = duration + 's';
-    }
-
-    async function refreshMessages() {
-        const messages = await fetchMessages();
-        updateTicker(messages);
-    }
-
-    // Initial load
-    refreshMessages();
-
-    // Refresh messages periodically
-    setInterval(refreshMessages, SHEET_REFRESH_MS);
 </script>
 
 </body>
