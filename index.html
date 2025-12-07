@@ -96,7 +96,7 @@
             display:flex;
             justify-content:center;
             align-items:center;
-            padding:40px;
+            padding:60px 80px;
             text-align:center;
             overflow:hidden;
         }
@@ -104,15 +104,55 @@
         #message {
             font-size:4vw;
             font-weight:bold;
-            line-height:1.4;
+            line-height:1.5;
             opacity:1;
-            transition:opacity 0.5s ease;
+            transition:opacity 0.5s ease, font-size 0.3s ease;
             max-width:100%;
+            max-height:100%;
             word-wrap:break-word;
+            white-space:pre-line;
+            overflow:hidden;
         }
 
         #message.fade-out {
             opacity:0;
+        }
+
+        /* Bottom ticker for Obavještenja */
+        #bottom {
+            height:80px;
+            min-height:80px;
+            background:#1d7d1d;
+            display:none;
+            align-items:center;
+            overflow:hidden;
+        }
+
+        #bottom.has-announcements {
+            display:flex;
+        }
+
+        .ticker {
+            display:flex;
+            white-space:nowrap;
+            animation:scroll-left 20s linear infinite;
+        }
+
+        .ticker-item {
+            padding:0 20px;
+            font-size:2.2em;
+            font-weight:bold;
+        }
+
+        .ticker-item::after {
+            content:" ★ ";
+            margin:0 20px;
+            opacity:0.7;
+        }
+
+        @keyframes scroll-left {
+            0%   { transform:translateX(0); }
+            100% { transform:translateX(-50%); }
         }
 
         /* Test Panel - REMOVE LATER */
@@ -285,6 +325,8 @@
 
     <div class="section">Messages:</div>
     <button class="exit-btn" onclick="rotateMessage()">Next Message</button>
+    <button class="exit-btn" onclick="fetchMessages()">Force Refresh CSV</button>
+    <button class="exit-btn" onclick="debugMessages()">Debug Messages</button>
 </div>
 
 <!-- Prayer Mode Fullscreen -->
@@ -313,6 +355,9 @@
     <div id="message-area">
         <div id="message"></div>
     </div>
+    <div id="bottom">
+        <div class="ticker" id="ticker"></div>
+    </div>
 </div>
 
 <script>
@@ -328,7 +373,7 @@
     const GOOGLE_SHEET_CSV = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vRpcuOleNQR-WnFPu49-Ha2YQj8ZrVYVYEPrWU-pBwz7nsFmkXDgLK_fGiE7Emn0Wec7yz552GO_Wzw/pub?output=csv';
 
     // Intervals
-    const SHEET_REFRESH_MS = 60000;         // 60 sec - fetch new messages from sheet
+    const SHEET_REFRESH_MS = 300000;        // 5 min - fetch new messages from sheet
     const MESSAGE_ROTATE_MS = 300000;       // 5 min - rotate main message
     const PRAYER_CHECK_MS = 60000;          // 60 sec - check for prayer time change
     const PRAYER_MODE_CHECK_MS = 5000;      // 5 sec - check for prayer mode trigger
@@ -353,6 +398,7 @@
     // State
     let vaktijaData = null;
     let messages = [];
+    let announcements = [];
     let currentMessageIndex = 0;
     let prayerModeActive = false;
     let prayerModeTimeout = null;
@@ -506,12 +552,34 @@
     // ============================================
     // MAIN MESSAGE DISPLAY (rotates every 5 min)
     // ============================================
+    function adjustFontSize(el, text) {
+        const lines = text.split('\n').length;
+        const length = text.length;
+
+        // Adjust font size based on content
+        let fontSize;
+        if (length > 500 || lines > 10) {
+            fontSize = '1.8vw';
+        } else if (length > 300 || lines > 6) {
+            fontSize = '2.2vw';
+        } else if (length > 150 || lines > 4) {
+            fontSize = '2.8vw';
+        } else if (length > 80 || lines > 2) {
+            fontSize = '3.5vw';
+        } else {
+            fontSize = '4.5vw';
+        }
+
+        el.style.fontSize = fontSize;
+    }
+
     function showMessage(text) {
         const el = document.getElementById('message');
         el.classList.add('fade-out');
 
         setTimeout(() => {
             el.textContent = text;
+            adjustFontSize(el, text);
             el.classList.remove('fade-out');
         }, 500);
     }
@@ -529,17 +597,136 @@
     // ============================================
     // GOOGLE SHEETS SYNC
     // ============================================
+    // Parse CSV into 2D array (handles quoted fields with newlines)
+    function parseCSV(csv) {
+        const rows = [];
+        let currentRow = [];
+        let currentCell = '';
+        let inQuotes = false;
+
+        for (let i = 0; i < csv.length; i++) {
+            const char = csv[i];
+
+            if (char === '"') {
+                if (inQuotes && csv[i + 1] === '"') {
+                    currentCell += '"';
+                    i++;
+                } else {
+                    inQuotes = !inQuotes;
+                }
+            } else if (char === ',' && !inQuotes) {
+                currentRow.push(currentCell.trim());
+                currentCell = '';
+            } else if ((char === '\n' || (char === '\r' && csv[i + 1] !== '\n')) && !inQuotes) {
+                currentRow.push(currentCell.trim());
+                if (currentRow.some(cell => cell.length > 0)) {
+                    rows.push(currentRow);
+                }
+                currentRow = [];
+                currentCell = '';
+            } else if (char === '\r' && !inQuotes) {
+                // Skip \r if followed by \n
+            } else {
+                currentCell += char;
+            }
+        }
+
+        // Last cell/row
+        currentRow.push(currentCell.trim());
+        if (currentRow.some(cell => cell.length > 0)) {
+            rows.push(currentRow);
+        }
+
+        return rows;
+    }
+
+    // Get today's column (Monday=0, Sunday=6)
+    function getTodayColumn() {
+        const day = new Date().getDay(); // Sunday=0, Monday=1, etc.
+        return (day + 6) % 7; // Convert to Monday=0, Sunday=6
+    }
+
+    // Extract messages for today's column
+    function getMessagesForToday(csvData) {
+        const column = getTodayColumn();
+        const todayMessages = [];
+
+        // Skip first row (header)
+        for (let i = 1; i < csvData.length; i++) {
+            const row = csvData[i];
+
+            // Add today's column message
+            if (row[column] && row[column].trim().length > 0) {
+                todayMessages.push(row[column].trim());
+            }
+        }
+
+        return todayMessages;
+    }
+
+    // Extract announcements from column H (index 7)
+    function getAnnouncements(csvData) {
+        const announcementsList = [];
+
+        // Skip first row (header)
+        for (let i = 1; i < csvData.length; i++) {
+            const row = csvData[i];
+
+            // Column H = index 7
+            if (row[7] && row[7].trim().length > 0) {
+                announcementsList.push(row[7].trim());
+            }
+        }
+
+        return announcementsList;
+    }
+
+    // Update ticker with announcements
+    function updateTicker() {
+        const bottom = document.getElementById('bottom');
+        const ticker = document.getElementById('ticker');
+
+        if (announcements.length === 0) {
+            bottom.classList.remove('has-announcements');
+            ticker.innerHTML = '';
+            return;
+        }
+
+        bottom.classList.add('has-announcements');
+
+        const html = announcements.map(msg =>
+            `<span class="ticker-item">${msg}</span>`
+        ).join('');
+
+        ticker.innerHTML = html + html; // Duplicate for seamless loop
+
+        // Adjust speed based on content length
+        const totalLength = announcements.join('').length;
+        const duration = Math.max(15, totalLength * 0.3);
+        ticker.style.animationDuration = duration + 's';
+    }
+
     async function fetchMessages() {
         try {
-            const response = await fetch(GOOGLE_SHEET_CSV + '&_=' + Date.now());
+            const response = await fetch(GOOGLE_SHEET_CSV + '&_=' + Date.now(), {
+                cache: 'no-store',
+                headers: { 'Cache-Control': 'no-cache' }
+            });
             const csv = await response.text();
 
-            const rows = csv
-                .split('\n')
-                .map(row => row.trim())
-                .filter(row => row.length > 0);
+            const csvData = parseCSV(csv);
+            lastCsvData = csvData; // Store for debugging
+            const todayMessages = getMessagesForToday(csvData);
 
-            messages = rows.length > 0 ? rows : FALLBACK_MESSAGES;
+            messages = todayMessages.length > 0 ? todayMessages : FALLBACK_MESSAGES;
+
+            // Get announcements from column H
+            announcements = getAnnouncements(csvData);
+            updateTicker();
+
+            console.log('Today is column', getTodayColumn(), '- loaded', messages.length, 'messages');
+            console.log('Announcements loaded:', announcements.length);
+            console.log('CSV rows parsed:', csvData.length);
 
             // Show first message if none shown yet
             if (document.getElementById('message').textContent === '') {
@@ -628,6 +815,30 @@
         enterPrayerMode(index);
 
         console.log('Test: Entered prayer mode for', PRAYER_NAMES[index]);
+    }
+
+    let lastCsvData = []; // Store for debugging
+
+    async function debugMessages() {
+        console.log('=== DEBUG MESSAGES ===');
+        console.log('Today column:', getTodayColumn());
+        console.log('Total messages:', messages.length);
+        console.log('Messages:', messages);
+        console.log('Announcements:', announcements.length, announcements);
+        console.log('Raw CSV data (rows):', lastCsvData);
+
+        // Show each row's content for today's column
+        const col = getTodayColumn();
+        console.log('Column', col, 'values:');
+        lastCsvData.forEach((row, i) => {
+            console.log('Row', i, '- Day:', row[col], '| Obavještenja:', row[7]);
+        });
+
+        alert('Column: ' + col +
+              '\nMessages: ' + messages.length +
+              '\nAnnouncements: ' + announcements.length +
+              '\nCSV rows: ' + lastCsvData.length +
+              '\n\nCheck console for details');
     }
 </script>
 
