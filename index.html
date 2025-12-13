@@ -13,9 +13,28 @@
 
         body {
             display:flex;
+            flex-direction:column;
             font-family:Arial, sans-serif;
             background:#0a1628;
             color:white;
+        }
+
+        /* Header */
+        #header {
+            text-align:center;
+            padding:20px;
+            background:#0d2137;
+            font-size:2.5em;
+            font-weight:bold;
+            color:#f39c12;
+            letter-spacing:2px;
+        }
+
+        /* Main container */
+        #container {
+            flex:1;
+            display:flex;
+            overflow:hidden;
         }
 
         /* Left sidebar - Prayer times */
@@ -155,7 +174,7 @@
             100% { transform:translateX(-50%); }
         }
 
-        /* Test Panel - REMOVE LATER */
+        /* Test Panel - COMMENTED OUT
         #test-panel {
             position:fixed;
             top:10px;
@@ -207,6 +226,7 @@
             padding-top:10px;
             border-top:1px solid #444;
         }
+        */
 
         /* Prayer Mode - Fullscreen */
         #prayer-mode {
@@ -226,6 +246,14 @@
 
         #prayer-mode.active {
             display:flex;
+        }
+
+        #prayer-mode .prayer-mode-header {
+            font-size:2.5em;
+            font-weight:bold;
+            color:#f39c12;
+            letter-spacing:2px;
+            margin-bottom:30px;
         }
 
         #prayer-mode .prayer-mode-title {
@@ -294,8 +322,7 @@
         }
 
         /* Hide normal content during prayer mode */
-        body.prayer-active #sidebar,
-        body.prayer-active #main {
+        body.prayer-active #container {
             display:none;
         }
     </style>
@@ -303,7 +330,7 @@
 
 <body>
 
-<!-- TEST PANEL - REMOVE LATER -->
+<!-- Test Panel - COMMENTED OUT
 <div id="test-panel">
     <h3>Test Panel</h3>
 
@@ -326,11 +353,12 @@
     <div class="section">Messages:</div>
     <button class="exit-btn" onclick="rotateMessage()">Next Message</button>
     <button class="exit-btn" onclick="fetchMessages()">Force Refresh CSV</button>
-    <button class="exit-btn" onclick="debugMessages()">Debug Messages</button>
 </div>
+-->
 
 <!-- Prayer Mode Fullscreen -->
 <div id="prayer-mode">
+    <div class="prayer-mode-header">ARSLANAGINA VIKALJSKA DŽAMIJA</div>
     <div class="prayer-mode-title" id="prayer-mode-title">Tuzla</div>
     <div class="prayer-mode-date">
         <div class="islamic" id="prayer-mode-islamic"></div>
@@ -340,23 +368,29 @@
     <div class="prayer-status" id="prayer-mode-status"></div>
 </div>
 
-<!-- Left sidebar with prayer times -->
-<div id="sidebar">
-    <div class="location" id="location">Tuzla</div>
-    <div class="date">
-        <div class="date-islamic" id="date-islamic"></div>
-        <div id="date-gregorian"></div>
-    </div>
-    <div class="prayer-times" id="prayer-times"></div>
-</div>
+<!-- Header -->
+<div id="header">ARSLANAGINA VIKALJSKA DŽAMIJA</div>
 
-<!-- Main content -->
-<div id="main">
-    <div id="message-area">
-        <div id="message"></div>
+<!-- Main container -->
+<div id="container">
+    <!-- Left sidebar with prayer times -->
+    <div id="sidebar">
+        <div class="location" id="location">Tuzla</div>
+        <div class="date">
+            <div class="date-islamic" id="date-islamic"></div>
+            <div id="date-gregorian"></div>
+        </div>
+        <div class="prayer-times" id="prayer-times"></div>
     </div>
-    <div id="bottom">
-        <div class="ticker" id="ticker"></div>
+
+    <!-- Main content -->
+    <div id="main">
+        <div id="message-area">
+            <div id="message"></div>
+        </div>
+        <div id="bottom">
+            <div class="ticker" id="ticker"></div>
+        </div>
     </div>
 </div>
 
@@ -384,6 +418,20 @@
 
     // Prayer names in Bosnian
     const PRAYER_NAMES = ['Zora', 'Izlazak', 'Podne', 'Ikindija', 'Akšam', 'Jacija'];
+
+    // Check if currently in summer time (DST)
+    function isSummerTime() {
+        const now = new Date();
+        const jan = new Date(now.getFullYear(), 0, 1);
+        const jul = new Date(now.getFullYear(), 6, 1);
+        const stdOffset = Math.max(jan.getTimezoneOffset(), jul.getTimezoneOffset());
+        return now.getTimezoneOffset() < stdOffset;
+    }
+
+    // Get fixed Podne time (12:00 winter, 13:00 summer)
+    function getFixedPodneTime() {
+        return isSummerTime() ? '13:00' : '12:00';
+    }
 
     // Fallback vaktija data (approximate times for Tuzla)
     const FALLBACK_VAKTIJA = {
@@ -468,6 +516,9 @@
 
         // Store and render
         vaktijaData = data;
+
+        // Override Podne time (index 2) with fixed time
+        vaktijaData.vakat[2] = getFixedPodneTime();
 
         document.getElementById('location').textContent = vaktijaData.lokacija;
         document.getElementById('date-islamic').textContent = vaktijaData.datum[0];
@@ -715,7 +766,6 @@
             const csv = await response.text();
 
             const csvData = parseCSV(csv);
-            lastCsvData = csvData; // Store for debugging
             const todayMessages = getMessagesForToday(csvData);
 
             messages = todayMessages.length > 0 ? todayMessages : FALLBACK_MESSAGES;
@@ -787,9 +837,7 @@
     setInterval(checkForUpdates, CODE_CHECK_MS);
     checkForUpdates();
 
-    // ============================================
-    // TEST FUNCTIONS - REMOVE LATER
-    // ============================================
+    /* TEST FUNCTIONS - COMMENTED OUT
     function testSetActivePrayer(index) {
         if (!vaktijaData) return;
 
@@ -800,46 +848,14 @@
                 <div class="prayer-time">${time}</div>
             </div>
         `).join('');
-
-        console.log('Test: Set active prayer to', PRAYER_NAMES[index]);
     }
 
     function testEnterPrayerMode(index) {
-        if (!vaktijaData) {
-            console.log('Vaktija data not loaded yet');
-            return;
-        }
-
-        // Force enter prayer mode for testing
-        prayerModeActive = false; // Reset so we can enter again
+        if (!vaktijaData) return;
+        prayerModeActive = false;
         enterPrayerMode(index);
-
-        console.log('Test: Entered prayer mode for', PRAYER_NAMES[index]);
     }
-
-    let lastCsvData = []; // Store for debugging
-
-    async function debugMessages() {
-        console.log('=== DEBUG MESSAGES ===');
-        console.log('Today column:', getTodayColumn());
-        console.log('Total messages:', messages.length);
-        console.log('Messages:', messages);
-        console.log('Announcements:', announcements.length, announcements);
-        console.log('Raw CSV data (rows):', lastCsvData);
-
-        // Show each row's content for today's column
-        const col = getTodayColumn();
-        console.log('Column', col, 'values:');
-        lastCsvData.forEach((row, i) => {
-            console.log('Row', i, '- Day:', row[col], '| Obavještenja:', row[7]);
-        });
-
-        alert('Column: ' + col +
-              '\nMessages: ' + messages.length +
-              '\nAnnouncements: ' + announcements.length +
-              '\nCSV rows: ' + lastCsvData.length +
-              '\n\nCheck console for details');
-    }
+    */
 </script>
 
 </body>
