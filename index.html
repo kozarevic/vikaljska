@@ -25,7 +25,7 @@
             display:flex;
             justify-content:space-between;
             align-items:center;
-            padding:15px 30px;
+            padding:10px 25px;
             background:rgba(13, 33, 55, 0.8);
             backdrop-filter:blur(10px);
             border-bottom:1px solid rgba(255,255,255,0.1);
@@ -52,8 +52,8 @@
             flex:1;
             display:flex;
             overflow:hidden;
-            padding:15px;
-            gap:15px;
+            padding:10px;
+            gap:10px;
         }
 
         /* Left sidebar - Prayer times */
@@ -72,17 +72,17 @@
         }
 
         .location {
-            font-size:2.2em;
+            font-size:1.8em;
             font-weight:600;
             color:#f39c12;
             text-align:center;
-            margin-bottom:10px;
+            margin-bottom:5px;
         }
 
         .date {
             text-align:center;
-            margin-bottom:15px;
-            font-size:1.1em;
+            margin-bottom:10px;
+            font-size:0.95em;
             font-weight:300;
         }
 
@@ -95,16 +95,16 @@
         .prayer-times {
             display:flex;
             flex-direction:column;
-            gap:8px;
+            gap:5px;
         }
 
         .prayer {
             display:flex;
             justify-content:space-between;
             align-items:center;
-            padding:12px 18px;
+            padding:8px 15px;
             background:rgba(255,255,255,0.05);
-            border-radius:10px;
+            border-radius:8px;
             transition:all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
             border:1px solid transparent;
         }
@@ -121,13 +121,13 @@
         }
 
         .prayer-name {
-            font-size:1.4em;
+            font-size:1.2em;
             font-weight:400;
             opacity:0.9;
         }
 
         .prayer-time {
-            font-size:1.9em;
+            font-size:1.6em;
             font-weight:600;
         }
 
@@ -159,13 +159,13 @@
         #message {
             font-size:3.5vw;
             font-weight:500;
-            line-height:1.6;
+            line-height:1.4;
             opacity:1;
-            transition:opacity 0.5s ease;
-            max-width:100%;
-            max-height:100%;
+            transition:opacity 0.5s ease, font-size 0.3s ease;
+            width:100%;
+            text-align:center;
             word-wrap:break-word;
-            white-space:pre-line;
+            white-space:normal;
         }
 
         #message.fade-out {
@@ -356,7 +356,6 @@
 
 <body>
 
-<!-- Test Panel - HIDDEN
 <div id="test-panel">
     <h3>Test Panel</h3>
     <div>Set Active Prayer:</div>
@@ -379,7 +378,6 @@
     <button class="mode-btn" onclick="testAddAnnouncement()">Add Test</button>
     <button class="exit-btn" onclick="testClearAnnouncements()">Clear</button>
 </div>
--->
 
 <!-- Prayer Mode Fullscreen -->
 <div id="prayer-mode">
@@ -515,7 +513,8 @@
                 return i;
             }
         }
-        return -1;
+        // Before Zora - show Jacija as last active prayer
+        return 5;
     }
 
     function renderPrayerTimes() {
@@ -655,21 +654,28 @@
     // MAIN MESSAGE DISPLAY (rotates every 5 min)
     // ============================================
     function adjustFontSize(el, text) {
-        const lines = text.split('\n').length;
         const length = text.length;
 
-        // Adjust font size based on content
+        // Adjust font size based on character count
         let fontSize;
-        if (length > 500 || lines > 10) {
+        if (length > 600) {
+            fontSize = '1.3vw';
+        } else if (length > 450) {
             fontSize = '1.6vw';
-        } else if (length > 300 || lines > 6) {
-            fontSize = '2vw';
-        } else if (length > 150 || lines > 4) {
+        } else if (length > 300) {
+            fontSize = '1.9vw';
+        } else if (length > 200) {
+            fontSize = '2.2vw';
+        } else if (length > 150) {
             fontSize = '2.5vw';
-        } else if (length > 80 || lines > 2) {
-            fontSize = '3vw';
+        } else if (length > 100) {
+            fontSize = '2.8vw';
+        } else if (length > 60) {
+            fontSize = '3.2vw';
+        } else if (length > 30) {
+            fontSize = '3.8vw';
         } else {
-            fontSize = '3.5vw';
+            fontSize = '4.5vw';
         }
 
         el.style.fontSize = fontSize;
