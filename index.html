@@ -821,9 +821,13 @@
 
     async function fetchMessages() {
         try {
-            const response = await fetch(GOOGLE_SHEET_CSV + '&_=' + Date.now(), {
+            const response = await fetch(GOOGLE_SHEET_CSV + '&t=' + Date.now() + '&r=' + Math.random(), {
                 cache: 'no-store',
-                headers: { 'Cache-Control': 'no-cache' }
+                headers: {
+                    'Cache-Control': 'no-cache, no-store, must-revalidate',
+                    'Pragma': 'no-cache',
+                    'Expires': '0'
+                }
             });
             const csv = await response.text();
 
