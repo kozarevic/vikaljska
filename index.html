@@ -2,6 +2,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+    <meta http-equiv="Pragma" content="no-cache">
+    <meta http-equiv="Expires" content="0">
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 
     <style>
@@ -820,8 +823,15 @@
     }
 
     async function fetchMessages() {
+        const cacheBuster = '&t=' + Date.now() + '&r=' + Math.random();
+        const directUrl = GOOGLE_SHEET_CSV + cacheBuster;
+        const proxyUrl = CORS_PROXY + encodeURIComponent(GOOGLE_SHEET_CSV) + cacheBuster;
+
+        let csv = null;
+
+        // Try 1: Direct fetch
         try {
-            const response = await fetch(GOOGLE_SHEET_CSV + '&t=' + Date.now() + '&r=' + Math.random(), {
+            const response = await fetch(directUrl, {
                 cache: 'no-store',
                 headers: {
                     'Cache-Control': 'no-cache, no-store, must-revalidate',
@@ -829,29 +839,49 @@
                     'Expires': '0'
                 }
             });
-            const csv = await response.text();
-
-            const csvData = parseCSV(csv);
-            const todayMessages = getMessagesForToday(csvData);
-
-            messages = todayMessages;
-
-            // Get announcements from column H
-            announcements = getAnnouncements(csvData);
-            updateTicker();
-
-            console.log('Today is column', getTodayColumn(), '- loaded', messages.length, 'messages');
-            console.log('Announcements loaded:', announcements.length);
-            console.log('CSV rows parsed:', csvData.length);
-
-            // Show first message if none shown yet
-            if (document.getElementById('message').textContent === '') {
-                currentMessageIndex = 0;
-                rotateMessage();
+            if (response.ok) {
+                csv = await response.text();
+                console.log('CSV loaded directly');
             }
-        } catch (error) {
-            console.error('Failed to fetch messages:', error);
-            messages = [];
+        } catch (e) {
+            console.warn('Direct CSV fetch failed:', e.message);
+        }
+
+        // Try 2: CORS proxy
+        if (!csv) {
+            try {
+                const response = await fetch(proxyUrl, {
+                    cache: 'no-store'
+                });
+                if (response.ok) {
+                    csv = await response.text();
+                    console.log('CSV loaded via CORS proxy');
+                }
+            } catch (e) {
+                console.warn('CORS proxy CSV fetch failed:', e.message);
+            }
+        }
+
+        if (!csv) {
+            console.error('All CSV fetch attempts failed');
+            return;
+        }
+
+        const csvData = parseCSV(csv);
+        messages = getMessagesForToday(csvData);
+
+        // Get announcements from column H
+        announcements = getAnnouncements(csvData);
+        updateTicker();
+
+        console.log('Today is column', getTodayColumn(), '- loaded', messages.length, 'messages');
+        console.log('Announcements loaded:', announcements.length);
+        console.log('CSV rows parsed:', csvData.length);
+
+        // Show first message if none shown yet
+        if (document.getElementById('message').textContent === '') {
+            currentMessageIndex = 0;
+            rotateMessage();
         }
     }
 

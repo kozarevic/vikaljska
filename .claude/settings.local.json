@@ -3,7 +3,10 @@
     "allow": [
       "WebFetch(domain:vaktija.ba)",
       "WebSearch",
-      "WebFetch(domain:api.vaktija.ba)"
+      "WebFetch(domain:api.vaktija.ba)",
+      "Bash(git add:*)",
+      "Bash(git commit -m \"$\\(cat <<''EOF''\nFix CSV loading on GitHub Pages with CORS proxy fallback\n\n- Added no-cache meta tags to prevent HTML caching\n- Enhanced CSV fetch with CORS proxy fallback \\(corsproxy.io\\)\n- Added cache-busting with timestamp and random params\n\n🤖 Generated with [Claude Code]\\(https://claude.com/claude-code\\)\n\nCo-Authored-By: Claude Opus 4.5 <noreply@anthropic.com>\nEOF\n\\)\")",
+      "Bash(git push)"
     ],
     "deny": [],
     "ask": []
